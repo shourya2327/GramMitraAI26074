@@ -1,29 +1,28 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getRegisteredUsers, updateCustomerData } from '../utils/userStorage';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  // Ensure default demo users are initialized in localStorage
+  useEffect(() => {
+    getRegisteredUsers();
+  }, []);
+
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('gm_user');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.id) return parsed;
+      } catch (e) {
+        /* ignore */
+      }
     }
-    // Default demo logged-in farmer
-    return {
-      id: 1,
-      fullName: "Ramesh Patel",
-      mobileNumber: "9876543210",
-      email: "ramesh.farmer@grammitra.ai",
-      role: "ROLE_FARMER",
-      preferredLanguage: "hi",
-      state: "Central Region",
-      district: "Local District",
-      block: "Local Block",
-      panchayat: "Local Panchayat"
-    };
+    return null;
   });
 
-  const [token, setToken] = useState(() => localStorage.getItem('gm_token') || 'demo-jwt-token');
+  const [token, setToken] = useState(() => localStorage.getItem('gm_token') || null);
 
   useEffect(() => {
     if (user) {
@@ -43,7 +42,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData, jwtToken) => {
     setUser(userData);
-    setToken(jwtToken || 'mock-jwt-token-active');
+    setToken(jwtToken || `demo-token-${userData.id}-${Date.now()}`);
   };
 
   const logout = () => {
@@ -53,14 +52,41 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('gm_token');
   };
 
+  const updateUserProfile = (updatedFields) => {
+    if (!user) return { success: false, message: 'No active session' };
+    const res = updateCustomerData(user.id, updatedFields);
+    if (res.success && res.user) {
+      setUser(res.user);
+      return { success: true, user: res.user };
+    }
+    return res;
+  };
+
   const switchRole = (newRole) => {
     if (user) {
-      setUser({ ...user, role: newRole });
+      const updated = { ...user, role: newRole };
+      setUser(updated);
+      updateCustomerData(user.id, { role: newRole });
     }
   };
 
+  const isAdmin = user?.role === 'ROLE_ADMIN';
+  const isFarmer = user?.role === 'ROLE_FARMER' || user?.role === 'ROLE_CUSTOMER' || !user?.role;
+  const isOfficer = user?.role === 'ROLE_OFFICER';
+
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, login, logout, switchRole }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      isAuthenticated: !!user, 
+      isAdmin,
+      isFarmer,
+      isOfficer,
+      login, 
+      logout, 
+      updateUserProfile,
+      switchRole 
+    }}>
       {children}
     </AuthContext.Provider>
   );

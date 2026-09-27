@@ -20,10 +20,12 @@ import {
   Clock, 
   MapPin, 
   ChevronRight,
-  Sun
+  Sun,
+  User,
+  Edit3
 } from 'lucide-react';
 
-export const Dashboard = ({ onNavigate, onOpenLocationModal }) => {
+export const Dashboard = ({ onNavigate, onOpenLocationModal, onOpenProfileModal }) => {
   const { user } = useAuth();
   const { selectedLocation, savedFields } = useLocation();
   const { t, playVoiceAdvisory, stopVoiceAdvisory, isPlayingVoice } = useLanguage();
@@ -61,10 +63,30 @@ export const Dashboard = ({ onNavigate, onOpenLocationModal }) => {
         boxShadow: 'var(--shadow-sm)'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-dark-green)', letterSpacing: '-0.02em' }}>
-              {t('welcome')}, {user?.fullName || "Ramesh Patel"} 🌾
+              {t('welcome')}, {user?.fullName || "Farmer"} 🌾
             </h1>
+            <button
+              onClick={onOpenProfileModal}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-primary-green)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                padding: '2px 6px',
+                borderRadius: '4px',
+                backgroundColor: 'var(--color-light-green)'
+              }}
+              title="Click to edit your name"
+            >
+              <Edit3 size={12} /> Edit Name
+            </button>
             <span className="gm-badge gm-badge-green" style={{ fontSize: '0.7rem' }}>
               {user?.role === 'ROLE_OFFICER' ? 'Agri Officer' : user?.role === 'ROLE_ADMIN' ? 'Admin' : 'Farmer Active'}
             </span>
@@ -79,20 +101,28 @@ export const Dashboard = ({ onNavigate, onOpenLocationModal }) => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={onOpenProfileModal}
+            className="gm-btn gm-btn-outline"
+            style={{ padding: '0.55rem 0.9rem', fontSize: '0.82rem', borderColor: 'var(--color-primary-green)' }}
+            title="View and edit customer profile"
+          >
+            <User size={15} color="var(--color-primary-green)" /> Profile & Name
+          </button>
           <button
             onClick={onOpenLocationModal}
             className="gm-btn gm-btn-outline"
-            style={{ padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+            style={{ padding: '0.55rem 0.9rem', fontSize: '0.82rem' }}
           >
             📍 {t('changeLocation')}
           </button>
           <button
             onClick={() => onNavigate('simulator')}
             className="gm-btn gm-btn-purple"
-            style={{ padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+            style={{ padding: '0.55rem 0.9rem', fontSize: '0.82rem' }}
           >
-            <Sparkles size={16} /> What-If Simulator
+            <Sparkles size={15} /> What-If Simulator
           </button>
         </div>
       </div>

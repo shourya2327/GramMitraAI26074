@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { registerNewCustomer } from '../utils/userStorage';
 import { ArrowLeft, UserPlus, Phone, Lock, Mail, MapPin, Globe } from 'lucide-react';
 
 export const Register = ({ onSwitchToLogin }) => {
@@ -10,10 +11,12 @@ export const Register = ({ onSwitchToLogin }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    state: '',
-    district: '',
-    block: '',
-    panchayat: '',
+    state: 'Madhya Pradesh',
+    district: 'Indore',
+    block: 'Sanwer',
+    panchayat: 'Kshipra',
+    farmSize: '3.5 Acres',
+    primaryCrop: 'Wheat & Pulses',
     preferredLanguage: 'hi',
     role: 'ROLE_FARMER'
   });
@@ -31,26 +34,37 @@ export const Register = ({ onSwitchToLogin }) => {
       setError('Passwords do not match');
       return;
     }
+    if (formData.password.length < 4) {
+      setError('Password must be at least 4 characters');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
-    // Simulate backend call to Spring Boot /api/auth/register
     setTimeout(() => {
-      login({
-        id: Date.now(),
+      const res = registerNewCustomer({
         fullName: formData.fullName,
         mobileNumber: formData.mobileNumber,
         email: formData.email,
+        password: formData.password,
         role: formData.role,
         preferredLanguage: formData.preferredLanguage,
         state: formData.state,
         district: formData.district,
         block: formData.block,
-        panchayat: formData.panchayat
-      }, 'demo-jwt-token-active-registered');
+        panchayat: formData.panchayat,
+        farmSize: formData.farmSize,
+        primaryCrop: formData.primaryCrop
+      });
+
+      if (res.success) {
+        login(res.user, res.token);
+      } else {
+        setError(res.message);
+      }
       setLoading(false);
-    }, 500);
+    }, 400);
   };
 
   return (
@@ -116,7 +130,7 @@ export const Register = ({ onSwitchToLogin }) => {
                 required
                 value={formData.fullName}
                 onChange={handleChange}
-                placeholder="Ramesh Patel"
+                placeholder="e.g. Ramesh Patel"
                 style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--color-border)', borderRadius: '6px', fontSize: '0.85rem' }}
               />
             </div>
@@ -147,7 +161,7 @@ export const Register = ({ onSwitchToLogin }) => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="farmer@example.com"
+                placeholder="farmer@grammitra.ai"
                 style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--color-border)', borderRadius: '6px', fontSize: '0.85rem' }}
               />
             </div>
@@ -206,10 +220,10 @@ export const Register = ({ onSwitchToLogin }) => {
             </div>
           </div>
 
-          {/* Administrative Hierarchy */}
+          {/* Administrative Hierarchy & Farm Details */}
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary-text)', letterSpacing: '0.05em' }}>
-              ADMINISTRATIVE PANCHAYAT LOCATION
+              ADMINISTRATIVE PANCHAYAT LOCATION & FARM DATA
             </span>
           </div>
 
@@ -235,36 +249,14 @@ export const Register = ({ onSwitchToLogin }) => {
             </div>
           </div>
 
-          {/* Role selector */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-dark-green)', marginBottom: '3px' }}>
-              Select Role
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              {[
-                { id: 'ROLE_FARMER', label: '🌾 Farmer' },
-                { id: 'ROLE_OFFICER', label: '📊 Agri Officer' },
-                { id: 'ROLE_ADMIN', label: '⚙ Admin' }
-              ].map(r => (
-                <button
-                  type="button"
-                  key={r.id}
-                  onClick={() => setFormData({ ...formData, role: r.id })}
-                  style={{
-                    padding: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    border: '1px solid',
-                    borderColor: formData.role === r.id ? 'var(--color-primary-green)' : 'var(--color-border)',
-                    backgroundColor: formData.role === r.id ? 'var(--color-light-green)' : '#FFFFFF',
-                    color: formData.role === r.id ? 'var(--color-dark-green)' : 'var(--color-secondary-text)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {r.label}
-                </button>
-              ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-dark-green)', marginBottom: '3px' }}>Farm Land Size</label>
+              <input type="text" name="farmSize" value={formData.farmSize} onChange={handleChange} placeholder="e.g. 4.0 Acres" style={{ width: '100%', padding: '0.55rem', border: '1px solid var(--color-border)', borderRadius: '6px', fontSize: '0.85rem' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-dark-green)', marginBottom: '3px' }}>Primary Crop</label>
+              <input type="text" name="primaryCrop" value={formData.primaryCrop} onChange={handleChange} placeholder="e.g. Wheat & Soybean" style={{ width: '100%', padding: '0.55rem', border: '1px solid var(--color-border)', borderRadius: '6px', fontSize: '0.85rem' }} />
             </div>
           </div>
 

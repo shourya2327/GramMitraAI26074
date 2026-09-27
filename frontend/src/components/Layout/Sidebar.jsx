@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Home, 
   MapPin, 
@@ -24,13 +25,47 @@ import {
   LogOut,
   X,
   Bot,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  Users,
+  Radio,
+  Activity,
+  Layers
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab, isOpenMobile, onCloseMobile }) => {
   const { t } = useLanguage();
+  const { user, isAdmin, logout } = useAuth();
 
-  const navGroups = [
+  // Navigation for Admins
+  const adminNavGroups = [
+    {
+      group: "ADMINISTRATION",
+      items: [
+        { id: "admin-dashboard", label: "Admin Console", icon: ShieldCheck, badge: "Admin" },
+        { id: "admin-customers", label: "Customer Management", icon: Users },
+        { id: "admin-broadcast", label: "Advisory Broadcast", icon: Radio },
+        { id: "admin-system", label: "System Telemetry", icon: Activity },
+      ]
+    },
+    {
+      group: "PLATFORM PREVIEW",
+      items: [
+        { id: "dashboard", label: "Farmer App View", icon: Home },
+        { id: "panchayat-map", label: "Weather Radar Map", icon: Map },
+        { id: "extreme-weather", label: "Disaster Alerts", icon: AlertTriangle },
+      ]
+    },
+    {
+      group: "PREFERENCES",
+      items: [
+        { id: "settings", label: t("nav.settings"), icon: Settings },
+      ]
+    }
+  ];
+
+  // Navigation for Farmers / Customers
+  const farmerNavGroups = [
     {
       group: "MAIN",
       items: [
@@ -88,6 +123,8 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpenMobile, onCloseMobile }
     }
   ];
 
+  const activeNavGroups = isAdmin ? adminNavGroups : farmerNavGroups;
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -127,7 +164,31 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpenMobile, onCloseMobile }
             </button>
           </div>
 
-          {navGroups.map((grp, gIdx) => (
+          {/* Admin Banner in Sidebar if Admin */}
+          {isAdmin && (
+            <div style={{
+              margin: '0 0.25rem 1rem',
+              padding: '0.65rem 0.75rem',
+              backgroundColor: '#FAF5FF',
+              border: '1px solid #E9D5FF',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <ShieldCheck size={18} color="#7C3AED" />
+              <div>
+                <strong style={{ fontSize: '0.78rem', color: '#6B21A8', display: 'block' }}>
+                  ADMIN CONSOLE
+                </strong>
+                <span style={{ fontSize: '0.7rem', color: '#9333EA' }}>
+                  Full Access Mode
+                </span>
+              </div>
+            </div>
+          )}
+
+          {activeNavGroups.map((grp, gIdx) => (
             <div key={gIdx} style={{ marginBottom: '1.1rem' }}>
               <div style={{
                 fontSize: '0.68rem',

@@ -17,7 +17,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
-export const Header = ({ onOpenLocationModal, onToggleMobileSidebar }) => {
+export const Header = ({ onOpenLocationModal, onToggleMobileSidebar, onOpenProfileModal }) => {
   const { user, logout, switchRole } = useAuth();
   const { selectedLocation } = useLocation();
   const { language, setLanguage, t } = useLanguage();
@@ -255,14 +255,45 @@ export const Header = ({ onOpenLocationModal, onToggleMobileSidebar }) => {
           )}
         </div>
 
-        {/* Demo Mode Badge */}
-        <span 
-          className="gm-badge gm-badge-blue"
-          style={{ fontSize: '0.7rem', padding: '0.25rem 0.6rem' }}
-          title="Demo Mode is active with live simulated ML and GIS layers"
-        >
-          <Sparkles size={11} /> Live Demo
-        </span>
+        {/* User Profile Chip (Dynamic Customer / Admin Name) */}
+        {user && (
+          <button
+            onClick={onOpenProfileModal}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'var(--color-light-green)',
+              border: '1px solid #C8E6C9',
+              padding: '0.35rem 0.65rem',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: 'var(--color-dark-green)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Click to view and edit your profile"
+          >
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--color-primary-green)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 800
+            }}>
+              {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.fullName || (user.role === 'ROLE_ADMIN' ? 'Admin' : 'Farmer')}
+            </span>
+          </button>
+        )}
 
         {/* Logout */}
         <button

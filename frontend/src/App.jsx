@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -8,10 +8,14 @@ import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
 import { LocationPickerModal } from './components/Map/LocationPickerModal';
 import { GramMitraAgentModal } from './components/Agent/GramMitraAgentModal';
+import { CustomerProfileModal } from './components/Auth/CustomerProfileModal';
 
 // Auth Pages
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+
+// Admin Page
+import { AdminDashboard } from './pages/AdminDashboard';
 
 // Dashboard & Functional Pages
 import { Dashboard } from './pages/Dashboard';
@@ -33,14 +37,82 @@ import { FeedbackLearning } from './pages/FeedbackLearning';
 import { VoiceAdvisoryPage } from './pages/VoiceAdvisoryPage';
 import { SettingsPage } from './pages/Settings';
 
+import { ShieldAlert, X } from 'lucide-react';
+
 const MainAppContent = () => {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const [authView, setAuthView] = useState('login'); // 'login' or 'register'
-  const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // Set default initial tab based on role
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash.replace('#/', '').replace('#', '');
+    if (hash) return hash;
+    return 'dashboard';
+  });
+
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [accessDeniedNotice, setAccessDeniedNotice] = useState(null);
 
+  // Role-based initial redirect when user logs in or role changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (isAdmin && activeTab === 'dashboard' && !window.location.hash) {
+        setActiveTab('admin-dashboard');
+        window.location.hash = '#/admin-dashboard';
+      } else if (!isAdmin && activeTab.startsWith('admin')) {
+        setActiveTab('dashboard');
+        window.location.hash = '#/dashboard';
+      }
+    }
+  }, [isAuthenticated, isAdmin]);
+
+  // Synchronize URL Hash and enforce Role-Based Access Control (RBAC)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#/', '').replace('#', '').trim();
+      
+      // If unauthenticated, prevent accessing protected tabs
+      if (!isAuthenticated) {
+        if (hash === 'register') {
+          setAuthView('register');
+        } else {
+          setAuthView('login');
+        }
+        return;
+      }
+
+      // Check for Admin-only routes
+      const isAdminRoute = hash === 'admin' || hash === 'admin-dashboard' || hash.startsWith('admin-');
+      if (isAdminRoute) {
+        if (!isAdmin) {
+          // Block non-admin from accessing admin dashboard
+          setAccessDeniedNotice('Access Denied: You need Administrator privileges to access the Admin Dashboard.');
+          setActiveTab('dashboard');
+          window.location.hash = '#/dashboard';
+          setTimeout(() => setAccessDeniedNotice(null), 5000);
+          return;
+        } else {
+          setActiveTab('admin-dashboard');
+          return;
+        }
+      }
+
+      if (hash) {
+        setActiveTab(hash);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    // Initial check on mount
+    handleHashChange();
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [isAuthenticated, isAdmin]);
+
+  // If user is not authenticated, show Login or Register
   if (!isAuthenticated) {
     if (authView === 'register') {
       return <Register onSwitchToLogin={() => setAuthView('login')} />;
@@ -49,19 +121,53 @@ const MainAppContent = () => {
   }
 
   const handleTabChange = (tab) => {
+    // RBAC Check on tab change
+    if ((tab === 'admin-dashboard' || tab.startsWith('admin-')) && !isAdmin) {
+      setAccessDeniedNotice('Access Denied: You need Administrator privileges to access the Admin Console.');
+      setTimeout(() => setAccessDeniedNotice(null), 5000);
+      return;
+    }
+
     setActiveTab(tab);
+    window.location.hash = `#/${tab}`;
+
     if (tab === 'ai-agent') {
       setIsAgentModalOpen(true);
     }
   };
 
   const renderActivePage = () => {
+    // Route guard for Admin pages
+    if (activeTab === 'admin-dashboard' || activeTab.startsWith('admin-')) {
+      if (!isAdmin) {
+        return (
+          <div className="gm-card" style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <ShieldAlert size={48} color="#DC2626" style={{ margin: '0 auto 1rem' }} />
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#991B1B', marginBottom: '0.5rem' }}>
+              Access Denied
+            </h2>
+            <p style={{ color: '#7F1D1D', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              You do not have administrative privileges to view this section.
+            </p>
+            <button
+              onClick={() => handleTabChange('dashboard')}
+              className="gm-btn gm-btn-primary"
+            >
+              Return to Customer Dashboard
+            </button>
+          </div>
+        );
+      }
+      return <AdminDashboard onNavigateToPreview={() => handleTabChange('dashboard')} />;
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return (
           <Dashboard 
             onNavigate={(tab) => handleTabChange(tab)} 
             onOpenLocationModal={() => setIsLocationModalOpen(true)} 
+            onOpenProfileModal={() => setIsProfileModalOpen(true)}
           />
         );
       case 'ai-agent':
@@ -69,6 +175,7 @@ const MainAppContent = () => {
           <Dashboard 
             onNavigate={(tab) => handleTabChange(tab)} 
             onOpenLocationModal={() => setIsLocationModalOpen(true)} 
+            onOpenProfileModal={() => setIsProfileModalOpen(true)}
           />
         );
       case 'my-location':
@@ -112,6 +219,7 @@ const MainAppContent = () => {
           <Dashboard 
             onNavigate={(tab) => handleTabChange(tab)} 
             onOpenLocationModal={() => setIsLocationModalOpen(true)} 
+            onOpenProfileModal={() => setIsProfileModalOpen(true)}
           />
         );
     }
@@ -122,8 +230,39 @@ const MainAppContent = () => {
       {/* Top Navigation Header */}
       <Header
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
+        onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
       />
+
+      {/* Access Denied Warning Toast / Banner */}
+      {accessDeniedNotice && (
+        <div style={{
+          backgroundColor: '#FEF2F2',
+          borderBottom: '1px solid #FECACA',
+          color: '#991B1B',
+          padding: '0.75rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '0.88rem',
+          fontWeight: 600,
+          boxShadow: 'var(--shadow-sm)',
+          position: 'sticky',
+          top: '65px',
+          zIndex: 90
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldAlert size={18} color="#DC2626" />
+            <span>{accessDeniedNotice}</span>
+          </div>
+          <button
+            onClick={() => setAccessDeniedNotice(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991B1B' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Main Layout Body */}
       <div style={{ display: 'flex', flex: 1 }}>
@@ -181,6 +320,12 @@ const MainAppContent = () => {
       <GramMitraAgentModal
         isOpen={isAgentModalOpen}
         onClose={() => setIsAgentModalOpen(false)}
+      />
+
+      {/* Customer Profile & Name Edit Modal */}
+      <CustomerProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
       />
 
       {/* Location Picker Modal with Google Maps */}
